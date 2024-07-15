@@ -1,11 +1,39 @@
 version: '3'
 
 services:
-  frankenphp:
+  app:
     build:
       context: .
-    entrypoint: php artisan octane:frankenphp --max-requests=1
+    command: php artisan octane:frankenphp --max-requests=1
     ports:
       - "8000:8000"
     volumes:
       - .:/app
+    depends_on:
+      - mysql
+    environment:
+      DB_HOST: mysql
+      DB_DATABASE: ${DB_DATABASE}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+    networks:
+      - app-network
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  mysql_data:

@@ -1,9 +1,11 @@
 FROM dunglas/frankenphp
 
 RUN install-php-extensions \
-    pcntl
-    # Add other PHP extensions here...
+    pcntl \
+    pdo_mysql
 
 COPY . /app
 
-ENTRYPOINT ["php", "artisan", "octane:frankenphp"]
+WORKDIR /app
+
+CMD ["php", "artisan", "octane:frankenphp"]
