@@ -1,35 +1,52 @@
-version: '3'
+version: '3.8'
 
 services:
   app:
     build:
-      context: .
-    command: php artisan octane:frankenphp --max-requests=1
+      dockerfile: Dockerfile
+    # ワーカーの再起動を1件ずつ実行する（開発環境のみ）
+    command: php artisan octane:frankenphp --max-requests=${OCTANE_MAX_REQUESTS:-1}
     ports:
       - "8000:8000"
+
+    # vendorとnode_modulesをコンテナ内にマウントすることで。ファイルI/Oを高速化
     volumes:
       - .:/app
+      - /app/vendor
+      - /app/node_modules
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
     environment:
-      DB_HOST: mysql
+      DB_HOST: ${DB_HOST}
       DB_DATABASE: ${DB_DATABASE}
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
     networks:
       - app-network
+    restart: unless-stopped
 
   mysql:
     image: mysql:8.0
     environment:
       MYSQL_DATABASE: ${DB_DATABASE}
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
     volumes:
       - mysql_data:/var/lib/mysql
     ports:
       - "3306:3306"
     networks:
       - app-network
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    # クラッシュや Docker デーモンの再起動時にコンテナを常に再起動することで、予期せぬ停止を防ぐ
+    restart: unless-stopped
 
 networks:
   app-network:
